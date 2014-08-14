@@ -1,0 +1,21 @@
+---
+- name: Create groups
+  group: name={{ item }} state=present
+  with_items:
+    - deploy
+
+- name: ensure sudoers.d is enabled
+  lineinfile: dest=/etc/sudoers state=present backup=yes regexp='^#includedir /etc/sudoers.d' line='#includedir /etc/sudoers.d'
+
+- name: set up password-less sudo for admin users
+  copy: content="%{{ item }} ALL=(ALL) NOPASSWD:ALL" dest="/etc/sudoers.d/{{ item }}" owner=root group=root mode=0440
+  with_items:
+    - deploy
+
+- name: Create users
+  user: name={{ item.name }} state=present group={{ item.group }} shell=/bin/bash
+  with_items:
+    - { name: 'deploy', group: 'deploy' }
+
+- name: Base | Take owenership of /tmp
+  shell: sudo chown deploy:deploy /tmp

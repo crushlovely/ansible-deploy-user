@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: Pablo Castillo
+  company: Crush & Lovely
+  description: Creates a deploy user for Ubuntu 12.04LTS or greater
+  license: MIT
+  min_ansible_version: 1.2
+  platforms:
+    - name: Ubuntu
+      versions:
+        - precise
+  categories:
+    - system
+dependencies: []
