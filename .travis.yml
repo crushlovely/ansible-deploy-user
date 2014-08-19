@@ -7,7 +7,10 @@ env:
     - OWN_TMP=false EXPECTED_TMP_OWNER=root
 before_install:
  - sudo apt-get update -qq
- - sudo apt-get install -qq python-apt python-pycurl aptitude
+ - sudo apt-get install -qq python-apt python-pycurl aptitude python-software-properties
+ - sudo add-apt-repository ppa:duggan/bats --yes
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq bats
 install:
   # Install Ansible.
   - pip install ansible==1.6.6
@@ -28,24 +31,5 @@ script:
     && (echo 'Idempotence test: pass' && exit 0)
     || (echo 'Idempotence test: fail' && exit 1)
 
-  # Test that the user was created properly
-  - >
-    id deploy 2>/dev/null
-    && [ $? -eq 0 ]
-    && (echo 'User test: pass' && exit 0)
-    || (echo 'User test: fail' && exit 1)
-
-  # Test that the group was created properly
-  - >
-    id -g deploy 2>/dev/null
-    && [ $? -eq 0 ]
-    && (echo 'Group test: pass' && exit 0)
-    || (echo 'Group test: fail' && exit 1)
-
-  - >
-    ls -l /
-    | grep tmp
-    | awk '{print $3 $4}'
-    | grep -q "$EXPECTED_TMP_OWNER$EXPECTED_TMP_OWNER"
-    && (echo '/tmp ownership test: pass' && exit 0)
-    || (echo '/tmp ownership test: fail' && exit 1)
+  # Run the test suite
+  - EXPECTED_USER=deploy EXPECTED_GROUP=deploy bats tests/tests.bats
