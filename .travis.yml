@@ -3,8 +3,10 @@ language: python
 python: "2.7"
 env:
   matrix:
-    - OWN_TMP=true EXPECTED_TMP_OWNER=deploy
-    - OWN_TMP=false EXPECTED_TMP_OWNER=root
+    # When OWN_TMP is true, we expect /tmp to be owned by the user being created
+    - OWN_TMP=true EXPECTED_TMP_OWNER=deploy EXPECTED_USER=deploy EXPECTED_GROUP=deploy
+    # When OWN_TMP is false, we expect /tmp to be owned by root (the system default)
+    - OWN_TMP=false EXPECTED_TMP_OWNER=root EXPECTED_USER=deploy EXPECTED_GROUP=deploy
 before_install:
  - sudo apt-get update -qq
  - sudo apt-get install -qq python-apt python-pycurl aptitude python-software-properties
@@ -32,4 +34,4 @@ script:
     || (echo 'Idempotence test: fail' && exit 1)
 
   # Run the test suite
-  - EXPECTED_USER=deploy EXPECTED_GROUP=deploy bats tests/tests.bats
+  - bats tests/tests.bats
