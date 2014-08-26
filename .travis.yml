@@ -1,12 +1,37 @@
 ---
 language: python
 python: "2.7"
+env:
+  matrix:
+    # When OWN_TMP is true, we expect /tmp to be owned by the user being created
+    - OWN_TMP=true EXPECTED_TMP_OWNER=deploy EXPECTED_USER=deploy EXPECTED_GROUP=deploy
+    # When OWN_TMP is false, we expect /tmp to be owned by root (the system default)
+    - OWN_TMP=false EXPECTED_TMP_OWNER=root EXPECTED_USER=deploy EXPECTED_GROUP=deploy
 before_install:
  - sudo apt-get update -qq
- - sudo apt-get install -qq python-apt python-pycurl aptitude
+ - sudo apt-get install -qq python-apt python-pycurl aptitude python-software-properties
+ - sudo add-apt-repository ppa:duggan/bats --yes
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq bats
 install:
+  # Install Ansible.
   - pip install ansible==1.6.6
+
+  # Add ansible.cfg to pick up roles path.
+  - "printf '[defaults]\nroles_path = ../' > ansible.cfg"
 script:
-  - echo localhost > inventory
-  - ansible-playbook --syntax-check -i inventory test.yml
-  - ansible-playbook -i inventory test.yml --connection=local --sudo
+  # Check the role/playbook's syntax.
+  - ansible-playbook --syntax-check -i tests/inventory tests/test.yml
+
+  # Run the role/playbook with ansible-playbook.
+  - ansible-playbook -i tests/inventory tests/test.yml --connection=local --sudo --extra-vars "take_ownership_of_tmp=$OWN_TMP"
+
+  # Run the role/playbook again, checking to make sure it's idempotent.
+  - >
+    ansible-playbook -i tests/inventory tests/test.yml --connection=local --sudo --extra-vars "take_ownership_of_tmp=$OWN_TMP"
+    | grep -q 'changed=0.*failed=0'
+    && (echo 'Idempotence test: pass' && exit 0)
+    || (echo 'Idempotence test: fail' && exit 1)
+
+  # Run the test suite
+  - bats tests/tests.bats
